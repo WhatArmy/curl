@@ -39,6 +39,17 @@ class Builder {
         'saveFile'              => '',
     );
 
+    /* Array of optional info
+    example:
+        'CURLINFO_EFFECTIVE_URL',
+        'CURLINFO_REDIRECT_COUNT'
+    or could be put into array bellow or added via
+    withOptionalInfo('CURLINFO_EFFECTIVE_URL');
+    method
+    */
+    protected $opt_info = array(
+    );
+
 
     /**
      * Set the URL to which the request is to be sent
@@ -163,6 +174,17 @@ class Builder {
     }
 
     /**
+     * Set any specific curl_getinfo constants
+     *
+     * @param   string $value         The name of the curl_getinfo constants
+     * @return Builder
+     */
+    public function withOptionalInfo($value)
+    {
+        array_push($this->opt_info,$value);
+        return $this;
+    }
+    /**
      * Set Cookie File
      *
      * @param   string $cookieFile  File name to read cookies from
@@ -183,7 +205,7 @@ class Builder {
     {
         return $this->withOption( 'COOKIEJAR', $cookieJar );
     }
-    
+
     /**
      * Set any specific cURL option
      *
@@ -492,6 +514,13 @@ class Builder {
             $response = substr( $response, $headerSize );
         }
 
+        //Capture optional curl_getinfo constants passed by user inside array
+        $responseOptData=array();
+        foreach ($this->opt_info as $item)
+        {
+            $responseOptData[$item]=curl_getinfo( $this->curlObject, constant($item) );
+        }
+
         // Capture additional request information if needed
         $responseData = array();
         if( $this->packageOptions[ 'responseObject' ] || $this->packageOptions[ 'responseArray' ] ) {
@@ -519,7 +548,7 @@ class Builder {
         }
 
         // Return the result
-        return $this->returnResponse( $response, $responseData, $responseHeader );
+        return $this->returnResponse( $response, $responseData, $responseHeader, $responseOptData );
     }
 
     /**
@@ -544,7 +573,7 @@ class Builder {
      * @param   string $header          Response header string
      * @return mixed
      */
-    protected function returnResponse($content, array $responseData = array(), $header = null)
+    protected function returnResponse($content, array $responseData = array(), $header = null, $responseOptData = array())
     {
         if( !$this->packageOptions[ 'responseObject' ] && !$this->packageOptions[ 'responseArray' ] ) {
             return $content;
@@ -560,6 +589,11 @@ class Builder {
 
         if( $this->curlOptions[ 'HEADER' ] ) {
             $object->headers = $this->parseHeaders( $header );
+        }
+
+        if(count($responseOptData)>0)
+        {
+            $object->optInfo=$responseOptData;
         }
 
         if( $this->packageOptions[ 'responseObject' ] ) {
