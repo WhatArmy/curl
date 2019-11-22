@@ -540,6 +540,8 @@ class Builder {
             fclose($file);
         } else if( $this->packageOptions[ 'asJsonResponse' ] ) {
             // Decode the request if necessary
+            // Remove the utf-8 BOM
+            $response = str_replace("\xEF\xBB\xBF",'',$response);
             $response = json_decode($response, $this->packageOptions[ 'returnAsArray' ]);
         }
 
